@@ -34,3 +34,13 @@ yarn-error.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# .NET & Visual Studio
+bin/
+obj/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+TestResults/
+

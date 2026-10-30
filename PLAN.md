@@ -48,12 +48,12 @@ Sesuai spesifikasi Section 2.2:
 ## 2. Architecture & Data Model
 
 ### 2.1 Technology Stack Selection
-- **Runtime & Language**: Node.js (v20+) dengan TypeScript untuk *type safety* di seluruh layer.
-- **Backend API**: Express.js (REST API modular, middleware validasi, custom error handling).
-- **Database**: SQLite dengan WAL (Write-Ahead Logging) & `PRAGMA foreign_keys = ON` melalui driver berkecepatan tinggi (`better-sqlite3`).
+- **Runtime & Language**: .NET 9 (C# 13) pada backend untuk enterprise-grade type safety, robust web API, dan high throughput.
+- **Backend API**: ASP.NET Core 9 Web API (Controllers, modular middleware, custom exception filter/middleware, server-side authorization).
+- **ORM & Database**: Entity Framework Core 9 (EF Core) dengan SQLite provider (`Microsoft.EntityFrameworkCore.Sqlite`), strict foreign keys, check constraints, unique constraints, dan optimistic concurrency token (`[ConcurrencyCheck]` / `IsConcurrencyToken()`).
   - *Alasan*: Zero-configuration, zero-external dependency, deterministik, menjamin kemudahan verifikasi oleh assessor tanpa Docker.
 - **Frontend**: Single Page Application menggunakan React + Vite + TypeScript, ditata dengan modern Vanilla CSS design system (glassmorphism accents, clear contrast, responsive layout, intuitive user switcher).
-- **Automated Testing**: Vitest + Supertest untuk integration & API testing secara headless dan deterministik.
+- **Automated Testing**: xUnit + `Microsoft.AspNetCore.Mvc.Testing` (`WebApplicationFactory`) dengan in-memory / isolated SQLite database untuk integration test end-to-end secara headless dan deterministik.
 
 ### 2.2 Relational Data Model (Schema)
 
@@ -183,24 +183,24 @@ Sesuai spesifikasi Section 2.2:
 | `TC-07` | **Concurrent Action (Optimistic Concurrency)**: Dua request approve/reject dengan versi yang sama | Request pertama sukses (HTTP 200), request kedua gagal dengan `409 Conflict`. |
 | `TC-08` | **Rejection Flow**: Bob menolak request Alice dengan alasan | Status menjadi `REJECTED`, reject reason tersimpan di audit event dan database, tidak dapat diubah lagi. |
 
-Semua test akan diotomasi dan dapat dijalankan via satu perintah tunggal: `npm test`.
+Semua test akan diotomasi dan dapat dijalankan via satu perintah tunggal: `dotnet test`.
 
 ---
 
 ## 5. Architectural & Technical Trade-offs
 
-1. **Trade-off 1: SQLite (Embedded) vs PostgreSQL/MySQL (External Server)**
-   - *Pilihan*: SQLite dengan `better-sqlite3` dan WAL mode.
+1. **Trade-off 1: SQLite (Embedded) via EF Core vs PostgreSQL/MySQL (External Server)**
+   - *Pilihan*: SQLite dengan `Microsoft.EntityFrameworkCore.Sqlite` dan WAL mode.
    - *Trade-off*: SQLite tidak dirancang untuk horizontal scaling across multiple distributed nodes.
    - *Justifikasi*: Untuk kebutuhan MVP / take-home assessment, SQLite memberikan zero setup friction bagi assessor (tidak memerlukan docker-compose atau instalasi database server lokal), memiliki kepatuhan ACID penuh, mendukung *strict foreign keys* dan *unique constraints*, serta sangat cepat untuk automated test suites.
 2. **Trade-off 2: Simulated Auth Header (`x-user-id`) vs Full OAuth2 / JWT / Session Store**
-   - *Pilihan*: Menggunakan header HTTP `x-user-id` yang dipetakan ke seeded users via middleware.
+   - *Pilihan*: Menggunakan header HTTP `x-user-id` yang dipetakan ke seeded users via ASP.NET Core middleware / Authentication handler.
    - *Trade-off*: Tidak memiliki proteksi cryptographic signature seperti JWT atau stateful encrypted session cookie pada production sungguhan.
    - *Justifikasi*: Spesifikasi Section 2.2 secara eksplisit mengizinkan: *"Authentication boleh disimulasikan dengan user switcher / request header / session lokal. Authorization tetap wajib ditegakkan di backend"*. Pendekatan ini mengeliminasi kompleksitas yang tidak diminta (*Section 3.5 sengaja tidak diminta: OAuth/OIDC atau identity provider nyata*), sehingga fokus engineering dialokasikan pada *server-side authorization*, *concurrency control*, dan *state integrity*.
 3. **Trade-off 3: Integer Version Concurrency Token vs Timestamp / ETag**
-   - *Pilihan*: Monotonically increasing integer `version` (1, 2, 3...) pada record `access_requests`.
+   - *Pilihan*: Monotonically increasing integer `version` (1, 2, 3...) pada entitas `AccessRequest`, diproteksi oleh EF Core `[ConcurrencyCheck]`.
    - *Trade-off*: Membutuhkan kolom versi eksplisit pada skema database.
-   - *Justifikasi*: Integer version kebal terhadap masalah *clock skew* atau resolusi sub-milidetik pada server, sangat mudah diverifikasi secara deterministik pada database queries (`UPDATE ... WHERE id = ? AND version = ?`), dan terintegrasi secara alami ke dalam audit event log.
+   - *Justifikasi*: Integer version kebal terhadap masalah *clock skew* atau resolusi sub-milidetik pada server, sangat mudah diverifikasi secara deterministik pada database queries (`WHERE Id = @id AND Version = @version`), memicu `DbUpdateConcurrencyException` jika terjadi conflict, dan terintegrasi secara alami ke dalam audit event log.
 
 ---
 
@@ -208,4 +208,6 @@ Semua test akan diotomasi dan dapat dijalankan via satu perintah tunggal: `npm t
 
 *(Bagian ini akan diperbarui selama proses implementasi berlangsung jika terdapat penyesuaian teknis)*
 
-- **2026-10-30**: Initial plan dibuat dan disetujui. Baseline tag `assessment-start` akan dibuat sebelum implementasi kode.
+- **2026-10-30 12:17**: Initial plan dibuat dan baseline tag `assessment-start` dibuat.
+- **2026-10-30 12:30 [Change Request]**: Penyesuaian Requirement dari Kandidat/User: Backend diubah dari Node.js/Express menjadi **.NET 9 (C#) ASP.NET Core Web API** dengan **Entity Framework Core 9 (EF Core)** dan **SQLite**. Frontend tetap menggunakan **React + Vite** untuk user interface rich experience, dan automated test menggunakan **xUnit** (`dotnet test`).
+

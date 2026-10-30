@@ -1,0 +1,15 @@
+{
+  "name": "enterprise-access-request-hub",
+  "version": "1.0.0",
+  "description": "Enterprise Fullstack MVP Access Request Hub (.NET 9 + React + SQLite)",
+  "private": true,
+  "scripts": {
+    "start:backend": "dotnet run --project backend/AccessRequestHub.Api/AccessRequestHub.Api.csproj",
+    "start:frontend": "npm run dev --prefix frontend",
+    "build:backend": "dotnet build backend/AccessRequestHub.sln",
+    "build:frontend": "npm run build --prefix frontend",
+    "build": "npm run build:backend && npm run build:frontend",
+    "test": "dotnet test backend/AccessRequestHub.sln",
+    "test:backend": "dotnet test backend/AccessRequestHub.sln"
+  }
+}
